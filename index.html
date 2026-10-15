@@ -1,1 +1,274 @@
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام بصمة العيادة الذكي - عن بُعد</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; direction: rtl; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h2, h3 { text-align: center; color: #2c3e50; }
+        .login-box, .dashboard, .admin-panel { display: none; }
+        .active-view { display: block; }
+        
+        /* نموذج الدخول */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .btn { width: 100%; background: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: #0056b3; }
+        .btn-logout { background: #dc3545; margin-top: 15px; }
+        .btn-logout:hover { background: #c82333; }
+        
+        /* لوحة الأجنت */
+        .timer-display { font-size: 28px; font-weight: bold; color: #e67e22; margin: 20px 0; background: #fff5e6; padding: 12px; border-radius: 8px; text-align: center; }
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        button.action { padding: 12px; border: none; border-radius: 6px; color: white; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .btn-in { background: #28a745; }
+        .btn-break { background: #ffc107; color: #333; }
+        .btn-back { background: #17a2b8; }
+        .btn-out { background: #dc3545; }
+
+        /* لوحة الإدارة */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #e1e8ed; padding: 10px; text-align: center; font-size: 14px; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        .admin-login-link { text-align: center; margin-top: 20px; font-size: 13px; color: #666; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🕒 نظام بصمة العيادة الذكي عن بُعد</h2>
+
+    <!-- 1. شاشة تسجيل الدخول للموظف -->
+    <div id="loginView" class="login-box active-view">
+        <h3>تسجيل دخول الموظف</h3>
+        <div class="form-group">
+            <label>اختر اسمك:</label>
+            <select id="agentSelect">
+                <option value="مصطفى">مصطفى</option>
+                <option value="أمينة">أمينة</option>
+                <option value="مؤمن">مؤمن</option>
+                <option value="وهبة">وهبة</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>كلمة المرور (الباسورد):</label>
+            <input type="password" id="agentPassword" placeholder="أدخل كلمة المرور الخاصة بك">
+        </div>
+        <button class="btn" onclick="agentLogin()">دخول للنظام</button>
+        <div class="admin-login-link" onclick="showAdminLogin()">🔑 دخول لوحة تحكم المدير (أنت فقط)</div>
+    </div>
+
+    <!-- 2. لوحة تحكم الموظف (الآجنت) -->
+    <div id="agentDashboard" class="dashboard">
+        <h3 id="welcomeAgent">مرحباً</h3>
+        <div style="text-align: center; color: #555; font-size: 14px;" id="agentStatusText">الحالة: خارج الدوام</div>
+        <div class="timer-display" id="agentTimer">00:00:00</div>
+        <div class="action-btns">
+            <button class="action btn-in" onclick="recordAction('تسجيل حضور 🟢')">🟢 حضور</button>
+            <button class="action btn-break" onclick="recordAction('استراحة ☕')">☕ استراحة</button>
+            <button class="action btn-back" onclick="recordAction('عودة ↩️')">↩️ عودة</button>
+            <button class="action btn-out" onclick="recordAction('خروج نهائي 🔴')">🔴 خروج نهائي</button>
+        </div>
+        <button class="btn btn-logout" onclick="logout()">تسجيل خروج</button>
+    </div>
+
+    <!-- 3. شاشة دخول المدير السري -->
+    <div id="adminLoginView" class="login-box">
+        <h3>دخول المشرف (المدير)</h3>
+        <div class="form-group">
+            <label>كلمة مرور المدير:</label>
+            <input type="password" id="adminPassword" placeholder="أدخل باسورد الإدارة">
+        </div>
+        <button class="btn" onclick="adminLogin()">دخول لوحة التقارير</button>
+        <button class="btn btn-logout" style="background:#6c757d; margin-top:10px;" onclick="backToMain()">رجوع</button>
+    </div>
+
+    <!-- 4. لوحة تقارير المدير الشاملة (سرية لا يراها الموظف) -->
+    <div id="adminPanel" class="admin-panel">
+        <h3>📊 لوحة تحكم وتقارير المدير (سرية)</h3>
+        <p style="font-size: 13px; color: #666; text-align: center;">هذه التقارير تظهر لك وحدك، ويتم تصفير النظام تلقائياً بعد الشيفت بـ ساعتين.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الموظف</th>
+                    <th>الإجراء</th>
+                    <th>الوقت</th>
+                </tr>
+            </thead>
+            <tbody id="adminLogsTable">
+                <!-- سجلات المدير -->
+            </tbody>
+        </table>
+        <button class="btn btn-logout" onclick="logout()">تسجيل خروج المدير</button>
+    </div>
+
+</div>
+
+<script>
+    // كلمات المرور الخاصة بالموظفين (يمكنك تعديلها هنا)
+    const passwords = {
+        "مصطفى": "1111",
+        "أمينة": "2222",
+        "مؤمن": "3333",
+        "وهبة": "4444"
+    };
+    const adminPass = "admin123"; // باسورد لوحة التحكم الخاصة بك
+
+    let currentAgent = null;
+    let timers = JSON.parse(localStorage.getItem("secure_timers")) || {};
+    let logs = JSON.parse(localStorage.getItem("secure_logs")) || [];
+
+    // فحص إعادة الضبط التلقائي بعد انتهاء الشيفت بـ ساعتين
+    checkAutoReset();
+
+    function agentLogin() {
+        let agent = document.getElementById("agentSelect").value;
+        let pass = document.getElementById("agentPassword").value;
+
+        if (pass === passwords[agent]) {
+            currentAgent = agent;
+            document.getElementById("loginView").classList.remove("active-view");
+            document.getElementById("agentDashboard").classList.add("active-view");
+            document.getElementById("welcomeAgent").innerText = `مرحباً بك، ${agent}`;
+            startTimerEngine();
+        } else {
+            alert("كلمة المرور غير صحيحة!");
+        }
+    }
+
+    function showAdminLogin() {
+        document.getElementById("loginView").classList.remove("active-view");
+        document.getElementById("adminLoginView").classList.add("active-view");
+    }
+
+    function adminLogin() {
+        let pass = document.getElementById("adminPassword").value;
+        if (pass === adminPass) {
+            document.getElementById("adminLoginView").classList.remove("active-view");
+            document.getElementById("adminPanel").classList.add("active-view");
+            renderAdminLogs();
+        } else {
+            alert("كلمة مرور المدير خاطئة!");
+        }
+    }
+
+    function backToMain() {
+        document.getElementById("adminLoginView").classList.remove("active-view");
+        document.getElementById("loginView").classList.add("active-view");
+    }
+
+    function logout() {
+        currentAgent = null;
+        document.getElementById("agentDashboard").classList.remove("active-view");
+        document.getElementById("adminPanel").classList.remove("active-view");
+        document.getElementById("loginView").classList.add("active-view");
+        document.getElementById("agentPassword").value = "";
+        document.getElementById("adminPassword").value = "";
+    }
+
+    function recordAction(action) {
+        if (!currentAgent) return;
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('ar-EG');
+        const dateStr = now.toLocaleDateString('ar-EG');
+
+        if (!timers[currentAgent]) {
+            timers[currentAgent] = { seconds: 0, status: "مغادر", active: false, lastUpdate: Date.now() };
+        }
+
+        if (action.includes('حضور')) {
+            timers[currentAgent].status = "يعمل 🟢";
+            timers[currentAgent].active = true;
+        } else if (action.includes('استراحة')) {
+            timers[currentAgent].status = "في استراحة ☕";
+            timers[currentAgent].active = false;
+        } else if (action.includes('عودة')) {
+            timers[currentAgent].status = "يعمل 🟢";
+            timers[currentAgent].active = true;
+        } else if (action.includes('خروج')) {
+            timers[currentAgent].status = "خارج الدوام 🔴";
+            timers[currentAgent].active = false;
+            timers[currentAgent].seconds = 0;
+            // تسجيل وقت انتهاء الشيفت لبدء حساب مهلة الساعتين للـ Reset
+            timers[currentAgent].shiftEndTime = Date.now();
+        }
+
+        logs.unshift({ date: dateStr, agent: currentAgent, action: action, time: timeStr });
+        localStorage.setItem("secure_timers", JSON.stringify(timers));
+        localStorage.setItem("secure_logs", JSON.stringify(logs));
+        alert(`تم تسجيل (${action}) بنجاح.`);
+    }
+
+    // عداد الوقت الفعلي للآجنت
+    function startTimerEngine() {
+        setInterval(() => {
+            if (!currentAgent) return;
+            let state = timers[currentAgent] || { seconds: 0, active: false, status: "مغادر" };
+            
+            document.getElementById("agentStatusText").innerText = `الحالة: ${state.status}`;
+            if (state.active) {
+                state.seconds++;
+                timers[currentAgent] = state;
+                localStorage.setItem("secure_timers", JSON.stringify(timers));
+            }
+            document.getElementById("agentTimer").innerText = formatTime(state.seconds);
+        }, 1000);
+    }
+
+    function formatTime(totalSeconds) {
+        let h = Math.floor(totalSeconds / 3600);
+        let m = Math.floor((totalSeconds % 3600) / 60);
+        let s = totalSeconds % 60;
+        return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    }
+
+    function pad(val) { return val > 9 ? val : "0" + val; }
+
+    function renderAdminLogs() {
+        let tbody = document.getElementById("adminLogsTable");
+        tbody.innerHTML = "";
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color: #777;">لا توجد سجلات بعد</td></tr>`;
+            return;
+        }
+        logs.forEach(log => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${log.date}</td>
+                    <td><b>${log.agent}</b></td>
+                    <td>${log.action}</td>
+                    <td>${log.time}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // نظام الـ Reset التلقائي بعد الشيفت بساعتين
+    function checkAutoReset() {
+        let now = Date.now();
+        let resetInterval = 2 * 60 * 60 * 1000; // ساعتان بالميلي ثانية
+        let lastReset = localStorage.getItem("last_auto_reset") || 0;
+
+        // إذا مرّت ساعتان أو بدأ يوم جديد، يتم تصفير العدادات تلقائياً
+        if (now - lastReset > resetInterval) {
+            Object.keys(timers).forEach(agent => {
+                if (timers[agent].shiftEndTime && (now - timers[agent].shiftEndTime > resetInterval)) {
+                    timers[agent].seconds = 0;
+                    timers[agent].status = "خارج الدوام 🔴";
+                    timers[agent].active = false;
+                }
+            });
+            localStorage.setItem("secure_timers", JSON.stringify(timers));
+            localStorage.setItem("last_auto_reset", now);
+        }
+    }
+</script>
+
+</body>
+</html>
